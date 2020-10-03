@@ -1,0 +1,2 @@
+prototype: "/main/GameObjects/ArrowKey.go"
+load_dynamically: false

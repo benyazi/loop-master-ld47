@@ -1,0 +1,118 @@
+local camera = require "orthographic.camera"
+CAMERA_ID = hash('/camera')
+
+function init(self)
+	msg.post(".", "acquire_input_focus")
+	self.eventTitle = nil
+	self.position = {x=0,y=0}
+	self.active = false
+	self.triggered = false
+	self.pattern = {}
+	self.currentPattern = nil
+end
+
+function final(self)
+	-- Add finalization code here
+	-- Learn more: https://defold.com/manuals/script/
+	-- Remove this function if not needed
+end
+
+function update(self, dt)
+	if not self.active then
+		return
+	end
+end
+
+local function startThisEvent(self, eventData)
+	self.eventTitle = eventData.title
+	local pos = go.get_position()
+	print("START EVENT " .. self.eventTitle)
+	for k, v in pairs(eventData.pattern) do
+		local btnPos = vmath.vector3((pos.x-32+k*16), pos.y, pos.z+1)
+		local createdBtn = factory.create("#ArrowKeyFactory", btnPos)
+		msg.post(createdBtn, "set_key_value", {currentKey = v})
+		self.pattern[#self.pattern+1] = {
+			arrow_key = v,
+			arrow_key_id = createdBtn,
+			status = 0
+		}
+	end
+	self.active = true
+	-- pprint(self.pattern)
+end
+
+function on_message(self, message_id, message, sender)
+	-- print("TRIGGER EVENT " .. message_id)
+	if message_id == hash("event_started") and not self.active then
+		startThisEvent(self, message.eventData)
+	elseif message_id == hash("trigger_response") then
+		if message.enter then
+			self.triggerred = true
+			sprite.set_constant("#sprite", "tint", vmath.vector4(1, 0, 0, 1))
+		else
+			self.triggerred = false
+			sprite.set_constant("#sprite", "tint", vmath.vector4(0, 1, 0, 1))
+		end
+	end
+end
+
+local function resetStatuses(self)
+	msg.post(CAMERA_ID, "shake", { intensity = 0.005, duration = 0.15, direction = "both" })
+	local timerDel = timer.delay(1, false, reactivateEvent)
+	for k, pattern in pairs(self.pattern) do
+		msg.post(pattern.arrow_key_id, "set_key_status", {keyStatus = -1})
+	end
+	self.currentPattern = nil
+	self.active = false
+end
+
+local function reactivateEvent(self)
+	for k, pattern in pairs(self.pattern) do
+		msg.post(pattern.arrow_key_id, "set_key_status", {keyStatus = 0})
+	end
+	self.active = true
+end
+
+local function finishThisEvent(self)
+	for k, pattern in pairs(self.pattern) do
+		go.delete(pattern.arrow_key_id, true)
+	end
+	go.delete(nil, true)
+end
+
+local function pressArrowBtn(self, btn)
+	if self.currentPattern == nil then 
+		self.currentPattern = 1
+	end
+	print("CUrrent PAttern Index " .. self.currentPattern)
+	if self.pattern[self.currentPattern].arrow_key == btn then 
+		msg.post(self.pattern[self.currentPattern].arrow_key_id, "set_key_status", {keyStatus = 1})
+		self.currentPattern = self.currentPattern + 1
+	else
+		resetStatuses(self)
+	end
+	if self.currentPattern > #self.pattern then 
+		finishThisEvent(self)
+	end
+end
+
+function on_input(self, action_id, action)
+	if not self.active or not self.triggerred then
+		return
+	end
+	if action_id == hash("arrow_up") and action.pressed then
+		pressArrowBtn(self,"up")
+	elseif action_id == hash("arrow_down") and action.pressed then 
+		pressArrowBtn(self,"down")
+	elseif action_id == hash("arrow_left") and action.pressed then 
+		pressArrowBtn(self,"left")
+	elseif action_id == hash("arrow_right") and action.pressed then 
+		pressArrowBtn(self,"right")
+	end
+end
+
+function on_reload(self)
+	-- Add reload-handling code here
+	-- Learn more: https://defold.com/manuals/hot-reload/
+	-- Remove this function if not needed
+end

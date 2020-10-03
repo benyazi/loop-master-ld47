@@ -1,0 +1,2 @@
+prototype: "/main/GameObjects/BaseEvent.go"
+load_dynamically: false

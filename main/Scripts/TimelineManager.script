@@ -1,38 +1,3 @@
-function init(self)
-	self.timer = 0
-	self.step = 0.01
-	self.events = {}
-	self.events["0.03"] = {
-		title = "0.10 Event",
-		pos = vmath.vector3(-50, 100, 0),
-		pattern = {"up","down","down","left"}
-	}
-	self.events["0.07"] = {
-		title = "0.15 Event",
-		pos = vmath.vector3(250, -100, 0),
-		pattern = {"up","down","down","left"}
-	}
-	self.events["0.30"] = {
-		title = "0.30 Event",
-		pos = vmath.vector3(50, 250, 0),
-		pattern = {"up","down","down","left"}
-	}
-end
-
-function final(self)
-	-- Add finalization code here
-	-- Learn more: https://defold.com/manuals/script/
-	-- Remove this function if not needed
-end
-
-function update(self, dt)
-	self.timer = self.timer + self.step*dt
-	if self.timer < 1 then 
-		msg.post('/TimelineManager#Timeline', 'update_timeline', {timelineCurrent = self.timer})
-		checkEvents(self)
-	end
-end
-
 function checkEvents(self)
 	local timePoint = string.format("%.2f", self.timer)
 	print("CHECK EVENT _> " .. timePoint)
@@ -48,9 +13,79 @@ function raiseEvent(event)
 	msg.post(createdEventId, 'event_started', {
 		eventData = event
 	})
+	if event.title == "Kitten Event" then 
+		msg.post("/Kitten#KittenCtrl", 'ketten_event', {
+			eventData = event
+		})
+	end
+end
+
+function init(self)
+	self.timer = 0
+	self.clock = 360
+	self.clockStep = 18
+	self.step = 0.025
+	self.events = {}
+	-- self.events["0.10"] = {
+	-- 	title = "Kitten Event",
+	-- 	pos = vmath.vector3(-50, 100, 0),
+	-- 	pattern = {"up","down","down","left"},
+	-- 	resultDropType = nil
+	-- }
+	-- self.events["0.25"] = {
+	-- 	title = "0.25 Event",
+	-- 	pos = vmath.vector3(250, -100, 0),
+	-- 	pattern = {"down","right","down","up"},
+	-- 	resultDropType = nil
+	-- }
+	-- self.events["0.45"] = {
+	-- 	title = "0.45 Event",
+	-- 	pos = vmath.vector3(50, 250, 0),
+	-- 	pattern = {"left","left","right","down"},
+	-- 	resultDropType = nil
+	-- }
+	
+end
+
+function final(self)
+	-- Add finalization code here
+	-- Learn more: https://defold.com/manuals/script/
+	-- Remove this function if not needed
+end
+
+function update(self, dt)
+	self.timer = self.timer + self.step*dt
+	self.clock = self.clock + self.clockStep*dt
+	if self.timer < 1 then 
+		local hours = math.floor(self.clock/60)
+		local minutes = math.floor(math.fmod(self.clock, 60))
+		local subTime = "AM"
+		if hours < 10 then 
+			hours = "0" .. hours
+		elseif hours > 12 then 
+			hours = "0" .. (hours - 12)
+			subTime = "PM"
+		end
+		if minutes < 10 then 
+			minutes = "0" .. minutes
+		end
+		local timeOnClock =  hours .. ":" .. minutes .. " " .. subTime
+		msg.post('/TimelineManager#Timeline', 'update_timeline', {timelineCurrent = self.timer, timeOnClock = timeOnClock})
+		checkEvents(self)
+	end
 end
 
 function on_message(self, message_id, message, sender)
+	if message_id == hash("kitten_accident") then 
+		-- x can be from 0 to 960
+		local posX = 960 * self.timer
+		local pos = vmath.vector3(15, 447, 1)
+		local size = vmath.vector3(0.01, 0.2, 1.7)
+		msg.post('/TimelineManager#Timeline', 'set_event_point', {pos = pos, size = size, eventTitle= "kitten_accident"})
+	end
+	if message_id == hash("spider_accident") then 
+		msg.post('/TimelineManager#Timeline', 'set_event_point', {eventTitle= "spider_accident"})
+	end
 end
 
 function on_input(self, action_id, action)

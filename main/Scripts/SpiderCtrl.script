@@ -1,0 +1,80 @@
+local function target_reached(target, current)
+	local targetX = math.floor(target.x)
+	local targetY = math.floor(target.y)
+	local currentX = math.floor(current.x)
+	local currentY = math.floor(current.y)
+	return targetX <= currentX+1 and targetX >= currentX-1 and targetY <= currentY+1 and targetY >= currentY-1
+end
+
+local function makeWeb(self)
+	
+	local pos = go.get_position()
+	local webId = factory.create("#WebFactory", pos)
+	print("WEB CREATED")
+	pprint(webId)
+end
+
+function init(self)
+	self.isStop = false
+	
+	self.path = {
+		vmath.vector3(441,138,1),
+		vmath.vector3(284,-227,1),
+		vmath.vector3(2,-341,1)
+	}
+	self.speeds = {
+		50,
+		100,
+		50
+	}
+	self.currentPathTarget = 1
+	self.direction = vmath.normalize(self.path[self.currentPathTarget] - go.get_position())
+	self.moving = true
+	self.speed = self.speeds[self.currentPathTarget]
+	-- sprite.set_hflip("#sprite", -1)
+end
+
+
+function final(self)
+	-- Add finalization code here
+	-- Learn more: https://defold.com/manuals/script/
+	-- Remove this function if not needed
+end
+
+function update(self, dt)
+	if self.moving and not self.isStop then
+		local position = go.get_position()
+		position = position + self.direction * self.speed * dt
+		go.set_position(position)
+		if target_reached(self.path[self.currentPathTarget], position) then
+			self.currentPathTarget = self.currentPathTarget + 1
+			if self.path[self.currentPathTarget] ~= nil then 
+				self.direction = vmath.normalize(self.path[self.currentPathTarget] - go.get_position())
+				self.speed = self.speeds[self.currentPathTarget]
+			else
+				self.moving = false
+				self.currentPathTarget = 1
+				makeWeb(self)
+			end
+		end
+	end
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("trigger_response") and message.other_id == hash("/Oslik") then
+		if message.enter then
+			msg.post("#sprite", "play_animation", {id = hash("paukan_002")})
+			msg.post("/TimelineManager#TimelineManager", "spider_accident")
+			self.isStop = true
+		end
+	end
+end
+
+function on_input(self, action_id, action)
+end
+
+function on_reload(self)
+	-- Add reload-handling code here
+	-- Learn more: https://defold.com/manuals/hot-reload/
+	-- Remove this function if not needed
+end

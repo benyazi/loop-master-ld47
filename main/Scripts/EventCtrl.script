@@ -1,69 +1,19 @@
 local camera = require "orthographic.camera"
 CAMERA_ID = hash('/camera')
 
-function init(self)
-	msg.post(".", "acquire_input_focus")
-	self.eventTitle = nil
-	self.position = {x=0,y=0}
+
+local function failStatuses(self)
+	msg.post(CAMERA_ID, "shake", { intensity = 0.005, duration = 0.15, direction = "both" })
+	local timerDel = timer.delay(1, false, reactivateEvent)
+	resetStatuses(self)
 	self.active = false
-	self.triggered = false
-	self.pattern = {}
-	self.currentPattern = nil
-end
-
-function final(self)
-	-- Add finalization code here
-	-- Learn more: https://defold.com/manuals/script/
-	-- Remove this function if not needed
-end
-
-function update(self, dt)
-	if not self.active then
-		return
-	end
-end
-
-local function startThisEvent(self, eventData)
-	self.eventTitle = eventData.title
-	local pos = go.get_position()
-	print("START EVENT " .. self.eventTitle)
-	for k, v in pairs(eventData.pattern) do
-		local btnPos = vmath.vector3((pos.x-32+k*16), pos.y, pos.z+1)
-		local createdBtn = factory.create("#ArrowKeyFactory", btnPos)
-		msg.post(createdBtn, "set_key_value", {currentKey = v})
-		self.pattern[#self.pattern+1] = {
-			arrow_key = v,
-			arrow_key_id = createdBtn,
-			status = 0
-		}
-	end
-	self.active = true
-	-- pprint(self.pattern)
-end
-
-function on_message(self, message_id, message, sender)
-	-- print("TRIGGER EVENT " .. message_id)
-	if message_id == hash("event_started") and not self.active then
-		startThisEvent(self, message.eventData)
-	elseif message_id == hash("trigger_response") then
-		if message.enter then
-			self.triggerred = true
-			sprite.set_constant("#sprite", "tint", vmath.vector4(1, 0, 0, 1))
-		else
-			self.triggerred = false
-			sprite.set_constant("#sprite", "tint", vmath.vector4(0, 1, 0, 1))
-		end
-	end
 end
 
 local function resetStatuses(self)
-	msg.post(CAMERA_ID, "shake", { intensity = 0.005, duration = 0.15, direction = "both" })
-	local timerDel = timer.delay(1, false, reactivateEvent)
 	for k, pattern in pairs(self.pattern) do
 		msg.post(pattern.arrow_key_id, "set_key_status", {keyStatus = -1})
 	end
 	self.currentPattern = nil
-	self.active = false
 end
 
 local function reactivateEvent(self)
@@ -89,10 +39,73 @@ local function pressArrowBtn(self, btn)
 		msg.post(self.pattern[self.currentPattern].arrow_key_id, "set_key_status", {keyStatus = 1})
 		self.currentPattern = self.currentPattern + 1
 	else
+		msg.post(CAMERA_ID, "shake", { intensity = 0.005, duration = 0.15, direction = "both" })
+		local timerDel = timer.delay(1, false, reactivateEvent)
 		resetStatuses(self)
+		self.active = false
+		return
 	end
 	if self.currentPattern > #self.pattern then 
 		finishThisEvent(self)
+	end
+end
+
+local function startThisEvent(self, eventData)
+	self.eventTitle = eventData.title
+	local pos = go.get_position()
+	print("START EVENT " .. self.eventTitle)
+	for k, v in pairs(eventData.pattern) do
+		local btnPos = vmath.vector3((pos.x-32+k*16), pos.y, pos.z+1)
+		local createdBtn = factory.create("#ArrowKeyFactory", btnPos)
+		msg.post(createdBtn, "set_key_value", {currentKey = v})
+		self.pattern[#self.pattern+1] = {
+			arrow_key = v,
+			arrow_key_id = createdBtn,
+			status = 0
+		}
+	end
+	self.active = true
+	-- pprint(self.pattern)
+end
+
+function init(self)
+	msg.post(".", "acquire_input_focus")
+	self.eventTitle = nil
+	self.position = {x=0,y=0}
+	self.active = false
+	self.triggered = false
+	self.pattern = {}
+	self.currentPattern = nil
+end
+
+function final(self)
+	-- Add finalization code here
+	-- Learn more: https://defold.com/manuals/script/
+	-- Remove this function if not needed
+end
+
+function update(self, dt)
+	if not self.active then
+		return
+	end
+end
+
+
+function on_message(self, message_id, message, sender)
+	-- print("TRIGGER EVENT " .. message_id)
+	if message_id == hash("event_started") and not self.active then
+		startThisEvent(self, message.eventData)
+	elseif message_id == hash("trigger_response") then
+		if message.enter then
+			self.triggerred = true
+			sprite.set_constant("#sprite", "tint", vmath.vector4(1, 0, 0, 1))
+		else
+			self.triggerred = false
+			sprite.set_constant("#sprite", "tint", vmath.vector4(1, 1, 1, 1))
+			local timerDel = timer.delay(1, false, reactivateEvent)
+			resetStatuses(self)
+			self.active = false
+		end
 	end
 end
 

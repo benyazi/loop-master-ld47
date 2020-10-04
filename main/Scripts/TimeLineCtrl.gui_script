@@ -1,7 +1,5 @@
 function init(self)
-	-- Add initialization code here
-	-- Learn more: https://defold.com/manuals/script/
-	-- Remove this function if not needed
+	self.currentClock = nil
 end
 
 function final(self)
@@ -21,10 +19,23 @@ function on_message(self, message_id, message, sender)
 		local node = gui.get_node("TimelineIn")
 		local scale = gui.get_scale(node)
 		scale.x = message.timelineCurrent
-		gui.set_scale(node, scale)
+		gui.set_scale(node, scale)		
+		local node = gui.get_node("clock")
+		self.currentClock = message.timeOnClock
+		gui.set_text(node, message.timeOnClock)
 	elseif message_id == hash('raise_event') then 
 		local node = gui.get_node("debugLog")
 		local text = message.event.title
+		gui.set_text(node, text)
+	elseif message_id == hash('set_event_point') then 
+		-- print(message_id)
+		-- local pos = message.pos
+		-- local size = message.size
+		-- local node = gui.new_box_node(pos,size)
+		-- pprint(node)
+		local node = gui.get_node("debugLog")
+		local text = gui.get_text(node)
+		text = text .. "\n" .. self.currentClock  .. " " .. message.eventTitle 
 		gui.set_text(node, text)
 	end
 end

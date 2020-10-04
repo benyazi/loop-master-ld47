@@ -1,0 +1,79 @@
+local function target_reached(target, current)
+	local targetX = math.floor(target.x)
+	local targetY = math.floor(target.y)
+	local currentX = math.floor(current.x)
+	local currentY = math.floor(current.y)
+	return targetX <= currentX+1 and targetX >= currentX-1 and targetY <= currentY+1 and targetY >= currentY-1
+end
+
+function init(self)
+	self.isStop = false
+	self.path = {
+		vmath.vector3(-325,341,0.5),
+		vmath.vector3(-447,272,0.5),
+		vmath.vector3(-330,284,0.5),
+		vmath.vector3(-288,186,0.5),
+		vmath.vector3(170,-86,0.5),
+		vmath.vector3(773,-382,0.5),
+	}
+	self.speeds = {
+		10,
+		10,
+		10,
+		10,
+		50,
+		50
+	}
+	self.currentPathTarget = 1
+	self.direction = vmath.normalize(self.path[self.currentPathTarget] - go.get_position())
+	self.moving = true
+	self.speed = self.speeds[self.currentPathTarget]
+	-- sprite.set_hflip("#sprite", -1)
+end
+
+function final(self)
+	-- Add finalization code here
+	-- Learn more: https://defold.com/manuals/script/
+	-- Remove this function if not needed
+end
+
+function update(self, dt)
+	
+	if self.moving and not self.isStop then
+		local position = go.get_position()
+		position = position + self.direction * self.speed * dt
+		go.set_position(position)
+
+		if target_reached(self.path[self.currentPathTarget], position) then
+			self.currentPathTarget = self.currentPathTarget + 1
+			if self.path[self.currentPathTarget] ~= nil then 
+				self.direction = vmath.normalize(self.path[self.currentPathTarget] - go.get_position())
+				self.speed = self.speeds[self.currentPathTarget]
+			else
+				self.moving = false
+				self.currentPathTarget = 1
+			end
+		end
+	end
+end
+
+function on_message(self, message_id, message, sender)
+	-- pprint(message.other_id)
+	if message_id == hash("ketten_event") then
+		-- msg.post("#sprite", "play_animation", {id = hash("kitten2")})
+	elseif message_id == hash("trigger_response") and message.other_id == hash("/Fountain") then
+		if message.enter then
+			msg.post("#sprite", "play_animation", {id = hash("kitten2")})
+			msg.post("/TimelineManager#TimelineManager", "kitten_accident")
+		end
+	end
+end
+
+function on_input(self, action_id, action)
+end
+
+function on_reload(self)
+	-- Add reload-handling code here
+	-- Learn more: https://defold.com/manuals/hot-reload/
+	-- Remove this function if not needed
+end
